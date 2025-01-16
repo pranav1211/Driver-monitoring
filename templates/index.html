@@ -60,7 +60,7 @@
                     statusText.textContent = data.status;
 
                     // Update alert box and sound
-                    if (["Driver Drowsy!", "Head Up!", "Head Down!", "Yawning!"].includes(data.status)) {
+                    if (["Driver Drowsy!", "Head Up!", "Head Down!", "Yawning!", "Phone in Use!"].includes(data.status)) {
                         alertBox.style.backgroundColor = "#ffcdd2"; // Red color
                         alertSound.play(); // Play sound
                     } else {

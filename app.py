@@ -4,6 +4,7 @@ import dlib
 import numpy as np
 import mediapipe as mp
 import time
+import tensorflow as tf  # Import TensorFlow
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -15,6 +16,10 @@ face_mesh = mp_face_mesh.FaceMesh(min_detection_confidence=0.5, min_tracking_con
 # Initialize dlib's face detector and landmark predictor
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+
+# Load the SavedModel
+model = tf.saved_model.load("models")  # Load the SavedModel from the "models" directory
+infer = model.signatures["serving_default"]  # Use the default signature for inference
 
 # Constants for EAR and drowsiness detection
 EAR_THRESHOLD = 0.19
@@ -165,6 +170,26 @@ def generate_frames():
                     head_pose_start_time = None
                     if current_status not in ["Driver Drowsy!", "Yawning!"]:
                         current_status = "Active"
+
+        # Phone detection using the SavedModel
+        input_shape = (224, 224)  # Example input shape for the model
+        resized_frame = cv2.resize(frame, input_shape)
+        input_data = np.expand_dims(resized_frame, axis=0)
+        input_data = input_data.astype(np.float32) / 255.0  # Normalize if required
+
+        # Run inference
+        input_tensor = tf.convert_to_tensor(input_data)
+        output = infer(input_tensor)
+        detection_scores = output["detection_scores"].numpy()[0]  # Example output key
+        detection_classes = output["detection_classes"].numpy()[0]  # Example output key
+
+        # Check if phone is detected
+        for i in range(len(detection_scores)):
+            if detection_scores[i] > 0.5:  # Confidence threshold
+                class_id = int(detection_classes[i])
+                if class_id == 1:  # Assuming class_id 1 corresponds to "phone"
+                    current_status = "Phone in Use!"
+                    break
 
         # Convert frame to JPEG
         ret, buffer = cv2.imencode('.jpg', image)
